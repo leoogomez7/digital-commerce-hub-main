@@ -1,33 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser } from "@/lib/auth";
 import { toast } from "sonner";
-import { Zap, Mail } from "lucide-react";
+import { Zap, Mail} from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { loginWithGoogle, isAuthenticated } from "@/lib/auth";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Redirigir si ya está logueado
+  useEffect(() => {
+    isAuthenticated().then(auth => {
+      if (auth) navigate("/dashboard");
+    });
+  }, []);
+
+  // Login con email/password
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Completa todos los campos");
       return;
     }
-    loginUser({ name: email.split("@")[0], email, isActive: true });
-    toast.success("Sesión iniciada correctamente");
-    navigate("/dashboard");
+
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (!data.user) {
+        toast.error("Usuario no encontrado o cuenta no activada. Revisa tu correo.");
+        return;
+      }
+
+      toast.success(`Bienvenido ${data.user.email}`);
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error("Error login:", err.message);
+      toast.error("Usuario no encontrado por error de datos o no activo la cuenta");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSocial = (provider: string) => {
-    toast.info(`Para login con ${provider} se necesita configurar el proveedor OAuth. Por ahora se inicia sesión de demostración.`);
-    loginUser({ name: provider + " User", email: provider.toLowerCase() + "@demo.com", isActive: true });
-    toast.success(`Sesión iniciada con ${provider}`);
-    navigate("/dashboard");
+  // Login con Google
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      // Supabase redirige automáticamente
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al iniciar sesión con Google");
+    }
   };
 
   return (
@@ -43,27 +78,54 @@ export default function Login() {
         </div>
 
         <div className="glass-card p-6 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <Button variant="outline" onClick={() => handleSocial("Google")} className="border-border text-foreground hover:bg-muted text-xs h-10">Google</Button>
-            <Button variant="outline" onClick={() => handleSocial("Microsoft")} className="border-border text-foreground hover:bg-muted text-xs h-10">Microsoft</Button>
-            <Button variant="outline" onClick={() => handleSocial("Facebook")} className="border-border text-foreground hover:bg-muted text-xs h-10">Facebook</Button>
+          {/* Botón Google */}
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={handleGoogleLogin}
+              className="border-border text-foreground hover:bg-muted text-xs h-10 flex items-center gap-2"
+            >
+            Google
+            </Button>
           </div>
 
+          {/* Separador */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">o continúa con email</span></div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-2 text-muted-foreground">o continúa con correo</span>
+            </div>
           </div>
 
+          {/* Form email/password */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground text-sm">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+              <Label htmlFor="email" className="text-foreground text-sm">Correo</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="tu@email.com"
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-foreground text-sm">Contraseña</Label>
-              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="bg-muted border-border text-foreground placeholder:text-muted-foreground" />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              />
             </div>
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 flex items-center justify-center gap-2"
+            >
               <Mail className="mr-2 h-4 w-4" /> Ingresar
             </Button>
           </form>

@@ -1,26 +1,100 @@
-// Simple auth store (UI-only, no real backend)
-const AUTH_KEY = 'saas_auth';
+import { supabase } from "./supabase";
+import type { User } from "@supabase/supabase-js";
 
-export interface User {
-  name: string;
-  email: string;
-  isActive: boolean;
-}
+export const loginUser = async (email: string, password: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data.user;
+  } catch (err) {
+    console.error("Error login email/password:", err);
+    return null;
+  }
+};
 
-export function getUser(): User | null {
-  const data = localStorage.getItem(AUTH_KEY);
-  return data ? JSON.parse(data) : null;
-}
+// Verifica si hay usuario logueado
+export const isAuthenticated = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return !!data.user;
+  } catch (err) {
+    console.error("Error verificando autenticación:", err);
+    return false;
+  }
+};
 
-export function loginUser(user: User) {
-  localStorage.setItem(AUTH_KEY, JSON.stringify(user));
-}
+// Obtiene el usuario actual, o null si no hay
+export const getUser = async (): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return data.user;
+  } catch (err) {
+    console.error("Error obteniendo usuario:", err);
+    return null;
+  }
+};
 
-export function logoutUser() {
-  localStorage.removeItem(AUTH_KEY);
-}
+// Login con Google
+export const loginWithGoogle = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL,
+      },
+    });
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error login Google:", err);
+    throw err;
+  }
+};
 
-export function isAuthenticated(): boolean {
-  const user = getUser();
-  return !!user && user.isActive;
-}
+/*
+
+// Login con Facebook
+export const loginWithFacebook = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "facebook",
+      options: {
+        redirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL,
+      },
+    });
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error login Facebook:", err);
+    throw err;
+  }
+};
+
+// Login con Azure (Microsoft)
+export const loginWithAzure = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        redirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL,
+      },
+    });
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error login Azure:", err);
+    throw err;
+  }
+};
+
+*/
+
+// Logout
+export const logoutUser = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  } catch (err) {
+    console.error("Error cerrando sesión:", err);
+    throw err;
+  }
+};

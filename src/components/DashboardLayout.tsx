@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { logoutUser, getUser, loginUser } from "@/lib/auth";
+import { getUser, isAuthenticated } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
   LayoutDashboard, Package, Monitor, ShoppingCart, MonitorSmartphone,
   CalendarDays, CalendarRange, Calendar, LogOut, Menu, X, Zap, ChevronDown,
-  User, Plus, History, ClipboardList, Settings
+  User, Plus, ClipboardList, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,17 +41,31 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogout, setShowLogout] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getUser();
+
+  useEffect(() => {
+    getUser().then(u => setUser(u));
+    isAuthenticated().then(auth => {
+      if (!auth) navigate("/login");
+    });
+  }, []);
 
   // Profile form
   const [profileForm, setProfileForm] = useState({
-    name: user?.name || "", currentPassword: "", newPassword: "", confirmPassword: "",
+    name: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const handleLogout = () => {
-    logoutUser();
+  useEffect(() => {
+    if (user) setProfileForm(f => ({ ...f, name: user.name || "" }));
+  }, [user]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast.success("Sesión cerrada");
     navigate("/login");
   };
@@ -60,10 +75,7 @@ export default function DashboardLayout() {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    if (user) {
-      loginUser({ ...user, name: profileForm.name });
-      toast.success("Perfil actualizado");
-    }
+    toast.success("Perfil actualizado (temporal, implementación real pendiente)");
     setShowProfile(false);
   };
 
