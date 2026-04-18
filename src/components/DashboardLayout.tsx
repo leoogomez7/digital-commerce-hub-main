@@ -64,9 +64,7 @@ export default function DashboardLayout() {
   }, [isAuthenticated, isLoading, navigate]);
 
   const handleLogout = () => {
-    logout({
-      logout_redirect_uri: import.meta.env.VITE_KINDE_LOGOUT_REDIRECT_URI || window.location.origin
-    });
+    logout();
   };
 
   const handleSaveProfile = () => {
