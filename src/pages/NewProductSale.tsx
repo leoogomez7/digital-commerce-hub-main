@@ -1,143 +1,118 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getAvailableProducts, saveProductSale, reduceProductQuantity, generateId, buildProductData } from "@/lib/store";
 import { toast } from "sonner";
-import { Save, ArrowLeft } from "lucide-react";
+import { Save, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+// --- NUBE ---
+import { client } from "@/lib/db"; 
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { generateId } from "@/lib/store";
+// ------------
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const salesChannels = ["Presencial", "WhatsApp", "Llamada", "Correo electrónico", "Instagram", "Facebook", "Otro"];
+const salesChannels = ["WhatsApp", "Instagram", "Facebook", "Presencial", "Otro"];
 
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="space-y-1.5">
-      <Label className="text-foreground text-xs font-medium">{label}</Label>
-      {children}
-    </div>
-  );
-  const ic = "bg-muted border-border text-foreground placeholder:text-muted-foreground h-9 text-sm";
-
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <Label className="text-foreground text-xs font-medium">{label}</Label>
+    {children}
+  </div>
+);
+const ic = "bg-muted border-border text-foreground h-9 text-sm";
 
 export default function NewProductSale() {
   const navigate = useNavigate();
-  const availableProducts = getAvailableProducts().filter(p => p.quantity > 0);
+  const { user } = useKindeAuth();
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const selectedProduct = availableProducts.find(p => p.id === selectedProductId);
+  const [selectedId, setSelectedId] = useState("");
 
   const [form, setForm] = useState({
-    clientName: "", phone: "", instagram: "", facebook: "", clientEmail: "",
-    salesChannel: "", saleDate: "", shippingDate: "", trackingNumber: "",
-    quantity: 1, externalCosts: 0, salePrice: 0, description: "", observations: "",
+    clientName: "", salesChannel: "", quantity: 1, externalCosts: 0, salePrice: 0, saleDate: new Date().toISOString().split('T')[0]
   });
 
-  const unitCost = selectedProduct?.unitCost || 0;
-  const totalCost = form.quantity * unitCost;
+  const selectedProduct = products.find(p => p.id === selectedId);
+  const totalCost = form.quantity * (selectedProduct?.unitCost || 0);
   const profit = form.salePrice - totalCost - form.externalCosts;
-  const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
 
+  useEffect(() => {
+    async function load() {
+      const res = await client.execute({
+        sql: "SELECT * FROM available_products WHERE user_id = ? AND quantity > 0",
+        args: [user?.id || ""]
+      });
+      setProducts(res.rows);
+      setLoading(false);
+    }
+    if (user) load();
+  }, [user]);
 
-  const doSave = () => {
-    if (!form.clientName || !selectedProductId) { toast.error("Completa cliente y producto"); return; }
-    if (selectedProduct && form.quantity > selectedProduct.quantity) { toast.error("Stock insuficiente"); return; }
-    setShowConfirm(true);
+  const confirmSave = async () => {
+    setSaving(true);
+    try {
+      const productData = `${selectedProduct.name} (${selectedProduct.brand})`;
+      await client.batch([
+        {
+          sql: `INSERT INTO product_sales (id, clientName, productId, productData, quantity, salePrice, profit, totalCost, externalCosts, user_id, createdAt, saleDate, salesChannel) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [generateId(), form.clientName, selectedId, productData, form.quantity, form.salePrice, profit, totalCost, form.externalCosts, user?.id, new Date().toISOString(), form.saleDate, form.salesChannel]
+        },
+        {
+          sql: "UPDATE available_products SET quantity = quantity - ? WHERE id = ?",
+          args: [form.quantity, selectedId]
+        }
+      ], "write");
+      toast.success("Venta registrada con éxito");
+      navigate("/dashboard/product-sales");
+    } catch (e) {
+      toast.error("Error al procesar la venta");
+    } finally {
+      setSaving(false);
+      setShowConfirm(false);
+    }
   };
 
-  const confirmSave = () => {
-    saveProductSale({
-      id: generateId(), ...form, productId: selectedProductId,
-      productData: selectedProduct ? buildProductData(selectedProduct) : "",
-      unitCost, totalCost, profit, createdAt: new Date().toISOString(),
-    });
-    reduceProductQuantity(selectedProductId, form.quantity);
-    toast.success("Venta registrada correctamente");
-    setForm({ clientName: "", phone: "", instagram: "", facebook: "", clientEmail: "", salesChannel: "", saleDate: "", shippingDate: "", trackingNumber: "", quantity: 1, externalCosts: 0, salePrice: 0, description: "", observations: "" });
-    setSelectedProductId("");
-    setShowConfirm(false);
-  };
+  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold text-foreground">Nueva Venta de Producto</h1>
-      </div>
-
+    <div className="space-y-6 max-w-3xl p-4">
+      <h1 className="text-2xl font-bold text-foreground">Nueva Venta de Producto</h1>
       <div className="glass-card p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Datos clientes</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Nombre y apellido cliente"><Input value={form.clientName} onChange={e => set("clientName", e.target.value)} className={ic} /></Field>
-          <Field label="Número de celular"><Input value={form.phone} onChange={e => set("phone", e.target.value)} className={ic} /></Field>
-          <Field label="Instagram"><Input value={form.instagram} onChange={e => set("instagram", e.target.value)} className={ic} /></Field>
-          <Field label="Facebook"><Input value={form.facebook} onChange={e => set("facebook", e.target.value)} className={ic} /></Field>
-          <Field label="Correo electrónico"><Input value={form.clientEmail} onChange={e => set("clientEmail", e.target.value)} className={ic} /></Field>
-          <Field label="Red social de venta">
-            <Select value={form.salesChannel} onValueChange={v => set("salesChannel", v)}>
-              <SelectTrigger className={ic}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {salesChannels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-
-        <Field label="Producto disponible">
-          <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-            <SelectTrigger className={ic}><SelectValue placeholder="Seleccionar producto" /></SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {availableProducts.map(p => (
-                <SelectItem key={p.id} value={p.id}>{buildProductData(p)} (Stock: {p.quantity})</SelectItem>
-              ))}
+        <Field label="Cliente"><Input value={form.clientName} onChange={e => setForm({...form, clientName: e.target.value})} className={ic} /></Field>
+        <Field label="Producto">
+          <Select value={selectedId} onValueChange={setSelectedId}>
+            <SelectTrigger className={ic}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+            <SelectContent>
+              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} - {p.brand} (Stock: {p.quantity})</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>
-
-        <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Fecha de venta"><Input type="date" value={form.saleDate} onChange={e => set("saleDate", e.target.value)} className={ic} /></Field>
-          <Field label="Fecha de envío"><Input type="date" value={form.shippingDate} onChange={e => set("shippingDate", e.target.value)} className={ic} /></Field>
-          <Field label="Número de envío"><Input value={form.trackingNumber} onChange={e => set("trackingNumber", e.target.value)} className={ic} /></Field>
-          <Field label="Cantidad"><Input type="number" value={form.quantity} onChange={e => set("quantity", +e.target.value)} min={1} max={selectedProduct?.quantity || 999} className={ic} /></Field>
-          <Field label="Gasto unitario ($)"><Input type="number" value={unitCost} readOnly className={`${ic} opacity-60`} /></Field>
-          <Field label="Gasto total ($)"><Input type="number" value={totalCost} readOnly className={`${ic} opacity-60`} /></Field>
-          <Field label="Gastos externos ($)"><Input type="number" value={form.externalCosts} onChange={e => set("externalCosts", +e.target.value)} placeholder="ej: impuesto tarjeta" className={ic} /></Field>
-          <Field label="Precio de venta ($)"><Input type="number" value={form.salePrice} onChange={e => set("salePrice", +e.target.value)} className={ic} /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Cantidad"><Input type="number" value={form.quantity} onChange={e => setForm({...form, quantity: +e.target.value})} className={ic} /></Field>
+          <Field label="Precio Venta ($)"><Input type="number" value={form.salePrice} onChange={e => setForm({...form, salePrice: +e.target.value})} className={ic} /></Field>
         </div>
-
-        <div className="glass-card p-3 bg-primary/5 border-primary/20">
-          <p className="text-xs text-muted-foreground">Ganancia automática</p>
-          <p className={`text-xl font-bold ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>${profit.toLocaleString()}</p>
+        <div className={`p-4 rounded-lg font-bold ${profit >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+          Ganancia Estimada: ${profit.toLocaleString()}
         </div>
-
-        <Field label="Descripción"><Textarea value={form.description} onChange={e => set("description", e.target.value)} className={`${ic} min-h-[60px]`} /></Field>
-        <Field label="Observaciones"><Textarea value={form.observations} onChange={e => set("observations", e.target.value)} className={`${ic} min-h-[60px]`} /></Field>
-      </div>
-
-      <div className="flex gap-3">
-        <Button onClick={doSave} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Save className="h-4 w-4 mr-2" /> Registrar venta
-        </Button>
-        <Button variant="ghost" onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+        <Button onClick={() => setShowConfirm(true)} disabled={saving || !selectedId} className="w-full">
+          {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Registrar Venta
         </Button>
       </div>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">¿Agregar esta nueva venta?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">Se registrará en Productos vendidos.</AlertDialogDescription>
-          </AlertDialogHeader>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>¿Confirmar Venta?</AlertDialogTitle></AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">No</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSave} className="bg-primary text-primary-foreground hover:bg-primary/90">Sí</AlertDialogAction>
+            <Button variant="ghost" onClick={() => setShowConfirm(false)}>Cancelar</Button>
+            <Button onClick={confirmSave} disabled={saving}>Confirmar</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

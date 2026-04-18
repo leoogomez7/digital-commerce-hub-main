@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { getUser, isAuthenticated } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react"; // Cambiado a Kinde
 import { toast } from "sonner";
 import {
   LayoutDashboard, Package, Monitor, ShoppingCart, MonitorSmartphone,
   CalendarDays, CalendarRange, Calendar, LogOut, Menu, X, Zap, ChevronDown,
-  User, Plus, ClipboardList, Settings
+  User, Plus, ClipboardList, Settings, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,43 +40,48 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogout, setShowLogout] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  
+  // Hooks de Kinde
+  const { user, logout, isAuthenticated, isLoading } = useKindeAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    getUser().then(u => setUser(u));
-    isAuthenticated().then(auth => {
-      if (!auth) navigate("/login");
-    });
-  }, []);
-
-  // Profile form
   const [profileForm, setProfileForm] = useState({
     name: "",
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
   });
 
+  // Sincronizar datos del usuario de Kinde al formulario
   useEffect(() => {
-    if (user) setProfileForm(f => ({ ...f, name: user.name || "" }));
+    if (user) setProfileForm({ name: user.givenName || "" });
   }, [user]);
+  
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  // Protección de ruta (por si entran directo por URL)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login", { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  const handleLogout = () => {
+    logout();
     toast.success("Sesión cerrada");
-    navigate("/login");
   };
 
   const handleSaveProfile = () => {
-    if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmPassword) {
-      toast.error("Las contraseñas no coinciden");
-      return;
-    }
-    toast.success("Perfil actualizado (temporal, implementación real pendiente)");
+    toast.info("Para cambiar tu nombre, edita tu perfil en la cuenta de Kinde.");
     setShowProfile(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -94,8 +98,13 @@ export default function DashboardLayout() {
             return (
               <button
                 key={item.path}
-                onClick={() => { navigate(item.path); if (window.innerWidth < 768) setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-xs transition-colors ${active ? 'bg-primary/10 text-primary border-r-2 border-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                onClick={() => { 
+                  navigate(item.path); 
+                  if (window.innerWidth < 768) setSidebarOpen(false); 
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-2 text-[11px] uppercase tracking-wider transition-colors ${
+                  active ? 'bg-primary/10 text-primary border-r-2 border-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {sidebarOpen && <span className="whitespace-nowrap">{item.label}</span>}
@@ -113,68 +122,68 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-x-hidden">
         <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50 backdrop-blur-xl sticky top-0 z-30">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground p-2">
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user?.name || "Usuario"}</span>
+              <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground outline-none px-2">
+                <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <span className="hidden sm:inline">{user?.givenName || "Usuario"}</span>
                 <ChevronDown className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border-border">
-              <DropdownMenuItem onClick={() => setShowProfile(true)} className="text-foreground">
-                <Settings className="h-4 w-4 mr-2" /> Modificar usuario
+            <DropdownMenuContent align="end" className="w-56 bg-card border-border">
+              <DropdownMenuItem onClick={() => setShowProfile(true)} className="cursor-pointer">
+                <Settings className="h-4 w-4 mr-2" /> Mi Perfil
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuItem onClick={() => setShowLogout(true)} className="text-destructive">
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowLogout(true)} className="text-destructive cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="flex-1 p-6 overflow-auto">
+
+        <main className="flex-1 p-4 md:p-6 animate-fade-in overflow-x-hidden">
           <Outlet />
         </main>
       </div>
 
-      {/* Logout dialog */}
+      {/* Dialogs */}
       <AlertDialog open={showLogout} onOpenChange={setShowLogout}>
-        <AlertDialogContent className="bg-card border-border">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">¿Seguro que deseas cerrar sesión?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">Tu sesión será cerrada y serás redirigido al login.</AlertDialogDescription>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>Se finalizará tu sesión actual.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-border text-foreground hover:bg-muted">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Cerrar sesión</AlertDialogAction>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">Salir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Profile dialog */}
       <Dialog open={showProfile} onOpenChange={setShowProfile}>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Modificar usuario</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Nombre</Label>
-              <Input value={profileForm.name} onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))} className="bg-muted border-border text-foreground" />
+        <DialogContent>
+          <DialogHeader><DialogTitle>Información de usuario</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input value={profileForm.name} readOnly className="bg-muted" />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-foreground text-sm">Correo electrónico</Label>
-              <Input value={user?.email || ""} readOnly className="bg-muted border-border text-foreground opacity-60" />
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={user?.email || ""} readOnly className="bg-muted opacity-60" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowProfile(false)} className="border-border text-foreground hover:bg-muted">Cancelar</Button>
-            <Button onClick={handleSaveProfile} className="bg-primary text-primary-foreground hover:bg-primary/90">Guardar</Button>
+            <Button onClick={() => setShowProfile(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

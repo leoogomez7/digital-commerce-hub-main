@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { KindeProvider } from "@kinde-oss/kinde-auth-react";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -24,34 +25,42 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="new-product" element={<NewProduct />} />
-            <Route path="new-service" element={<NewService />} />
-            <Route path="available-products" element={<AvailableProducts />} />
-            <Route path="available-services" element={<AvailableServices />} />
-            <Route path="new-product-sale" element={<NewProductSale />} />
-            <Route path="new-service-sale" element={<NewServiceSale />} />
-            <Route path="product-sales" element={<ProductSales />} />
-            <Route path="service-sales" element={<ServiceSales />} />
-            <Route path="report-monthly" element={<ReportMonthly />} />
-            <Route path="report-weekly" element={<ReportWeekly />} />
-            <Route path="report-annual" element={<ReportAnnual />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <KindeProvider
+    clientId="7f41da4eb4f0421d8260d299a4ae2dad"
+    domain="https://lrg07.kinde.com"
+    redirectUri={`${window.location.origin}/dashboard`} 
+    logoutUri={window.location.origin}
+  >
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            <Route path="/dashboard" element={<DashboardLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="new-product" element={<NewProduct />} />
+              <Route path="new-service" element={<NewService />} />
+              <Route path="available-products" element={<AvailableProducts />} />
+              <Route path="available-services" element={<AvailableServices />} />
+              <Route path="new-product-sale" element={<NewProductSale />} />
+              <Route path="new-service-sale" element={<NewServiceSale />} />
+              <Route path="product-sales" element={<ProductSales />} />
+              <Route path="service-sales" element={<ServiceSales />} />
+              <Route path="report-monthly" element={<ReportMonthly />} />
+              <Route path="report-weekly" element={<ReportWeekly />} />
+              <Route path="report-annual" element={<ReportAnnual />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </KindeProvider>
 );
 
 export default App;
