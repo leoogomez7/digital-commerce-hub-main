@@ -64,8 +64,9 @@ export default function DashboardLayout() {
   }, [isAuthenticated, isLoading, navigate]);
 
   const handleLogout = () => {
-    logout();
-    toast.success("Sesión cerrada");
+    logout({
+      logout_redirect_uri: import.meta.env.VITE_KINDE_LOGOUT_REDIRECT_URI || window.location.origin
+    });
   };
 
   const handleSaveProfile = () => {

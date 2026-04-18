@@ -29,7 +29,7 @@ const App = () => (
     clientId="7f41da4eb4f0421d8260d299a4ae2dad"
     domain="https://lrg07.kinde.com"
     redirectUri={`${window.location.origin}/dashboard`} 
-    logoutUri={window.location.origin}
+    logoutUri={`${window.location.origin}/login`} 
   >
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
