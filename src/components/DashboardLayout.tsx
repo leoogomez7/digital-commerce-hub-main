@@ -45,24 +45,28 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 1. Detectar si el usuario entró por modo Demo
-  const isDemo = localStorage.getItem("is_demo") === "true";
+  // LÓGICA DE DEMO: Usamos sessionStorage para que al recargar se borre todo
+  const isDemo = sessionStorage.getItem("is_demo") === "true";
 
-  // 2. Protección de ruta híbrida (Kinde o Demo)
+  const [profileForm, setProfileForm] = useState({ name: "" });
+
   useEffect(() => {
+    if (user) setProfileForm({ name: user.givenName || "" });
+  }, [user]);
+  
+  useEffect(() => {
+    // Si no es demo y no está autenticado, redirigir a landing
     if (!isLoading && !isAuthenticated && !isDemo) {
       navigate("/", { replace: true });
     }
   }, [isAuthenticated, isLoading, isDemo, navigate]);
 
-  // 3. Lógica de cierre de sesión con limpieza total para Demo
   const handleLogout = () => {
-    if (isDemo) {
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = "/"; // Recarga dura para resetear estados de memoria
-    } else {
+    sessionStorage.clear(); // Limpia la sesión demo
+    if (!isDemo) {
       logout();
+    } else {
+      navigate("/", { replace: true });
     }
   };
 
@@ -76,7 +80,6 @@ export default function DashboardLayout() {
 
   if (!isAuthenticated && !isDemo) return null;
 
-  // Definir nombre e inicial según el tipo de sesión
   const userName = isDemo ? "Invitado Demo" : (user?.givenName || "Usuario");
 
   return (
@@ -117,7 +120,7 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-x-hidden">
         <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50 backdrop-blur-xl sticky top-0 z-30">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground p-2">
@@ -151,13 +154,13 @@ export default function DashboardLayout() {
         </main>
       </div>
 
-      {/* Dialogs */}
+      {/* Logout Dialog */}
       <AlertDialog open={showLogout} onOpenChange={setShowLogout}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
             <AlertDialogDescription>
-              {isDemo ? "Al salir del modo demo, se borrarán todos los cambios temporales." : "Se finalizará tu sesión actual."}
+              {isDemo ? "Se borrarán los datos temporales de la demo." : "Se finalizará tu sesión actual."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -167,16 +170,17 @@ export default function DashboardLayout() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Profile Dialog */}
       <Dialog open={showProfile} onOpenChange={setShowProfile}>
         <DialogContent>
           <DialogHeader><DialogTitle>Información de usuario</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
-              <Input value={userName} readOnly className="bg-muted" />
+              <Input value={isDemo ? "Invitado Demo" : profileForm.name} readOnly className="bg-muted" />
             </div>
             <p className="text-xs text-muted-foreground italic">
-              {isDemo ? "Estás en modo demo. Los datos de perfil no son editables." : "Para cambiar tu nombre, edita tu perfil en Kinde."}
+              {isDemo ? "Modo demo: Los datos no son editables." : "Edita tu nombre desde tu cuenta de Kinde."}
             </p>
           </div>
         </DialogContent>

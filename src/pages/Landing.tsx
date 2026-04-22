@@ -19,14 +19,15 @@ export default function Landing() {
   const navigate = useNavigate();
   const { login, register } = useKindeAuth();
 
+  // CORRECCIÓN AQUÍ: Demo directa y volátil
   const handleDemo = () => {
-    // Quitamos el localStorage de aquí, porque lo pondrá el DemoAccess en App.tsx
-    navigate("/demo-access");
+    sessionStorage.setItem("is_demo", "true"); // Se borra al cerrar/recargar la pestaña
+    navigate("/dashboard"); // Directo al dashboard sin pasar por AdminGuard
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar - Botones alineados a la derecha */}
+      {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex items-center justify-between h-16 px-6">
           <div className="flex items-center gap-2">
@@ -34,7 +35,7 @@ export default function Landing() {
             <span className="text-xl font-bold text-foreground">Control de ventas</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Primero Crear cuenta, luego Ingresar */}
+            {/* Estos dispararán el AdminGuard en App.tsx */}
             <Button 
               onClick={() => navigate("/register")} 
               className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -66,8 +67,8 @@ export default function Landing() {
             Sistema completo para la gestión de ventas de productos y servicios digitales. Control total de clientes, gastos y ganancias automáticas.
           </p>
           
-          {/* Botones principales: Demo, Crear Cuenta e Ingresar */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {/* BOTÓN DEMO: Directo y sin claves */}
             <Button 
               size="lg" 
               onClick={handleDemo} 
@@ -76,6 +77,7 @@ export default function Landing() {
               Probar demo <Zap className="ml-2 h-4 w-4" />
             </Button>
             
+            {/* BOTONES REALES: Pedirán clave maestra gracias al AdminGuard en App.tsx */}
             <Button 
               size="lg" 
               onClick={() => navigate("/register")} 

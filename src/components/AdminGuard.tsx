@@ -10,24 +10,22 @@ export const AdminGuard = ({ children }: { children: React.ReactNode }) => {
     if (pass === import.meta.env.VITE_MASTER_PASSWORD) {
       setIsAuthorized(true);
     } else {
-      alert("Contraseña incorrecta");
+      alert("Clave de servidor incorrecta");
     }
   };
 
   if (!isAuthorized) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <div className="glass-card p-8 max-w-sm w-full text-center">
-          <h2 className="text-xl font-bold mb-4">Acceso Restringido</h2>
-          <p className="text-sm text-muted-foreground mb-6">Introduce la clave del servidor para continuar</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="glass-card p-8 max-w-sm w-full space-y-4">
+          <h2 className="text-xl font-bold">Acceso Protegido</h2>
           <Input 
             type="password" 
-            placeholder="Contraseña" 
+            placeholder="Clave maestra" 
             value={pass} 
-            onChange={(e) => setPass(e.target.value)}
-            className="mb-4"
+            onChange={(e) => setPass(e.target.value)} 
           />
-          <Button onClick={checkPass} className="w-full">Entrar</Button>
+          <Button onClick={checkPass} className="w-full">Validar</Button>
         </div>
       </div>
     );
