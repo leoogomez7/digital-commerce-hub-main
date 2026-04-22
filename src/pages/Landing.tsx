@@ -19,15 +19,14 @@ export default function Landing() {
   const navigate = useNavigate();
   const { login, register } = useKindeAuth();
 
-  // Función para entrar como Demo
   const handleDemo = () => {
-    localStorage.setItem("is_demo", "true");
-    navigate("/dashboard");
+    // Quitamos el localStorage de aquí, porque lo pondrá el DemoAccess en App.tsx
+    navigate("/demo-access");
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
+      {/* Navbar - Botones alineados a la derecha */}
       <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex items-center justify-between h-16 px-6">
           <div className="flex items-center gap-2">
@@ -35,11 +34,19 @@ export default function Landing() {
             <span className="text-xl font-bold text-foreground">Control de ventas</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground">
-              Ingresar
-            </Button>
-            <Button onClick={() => navigate("/register")} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {/* Primero Crear cuenta, luego Ingresar */}
+            <Button 
+              onClick={() => navigate("/register")} 
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
               Crear cuenta
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate("/login")} 
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Ingresar
             </Button>
           </div>
         </div>
@@ -59,7 +66,7 @@ export default function Landing() {
             Sistema completo para la gestión de ventas de productos y servicios digitales. Control total de clientes, gastos y ganancias automáticas.
           </p>
           
-          {/* Botones principales */}
+          {/* Botones principales: Demo, Crear Cuenta e Ingresar */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button 
               size="lg" 
@@ -75,6 +82,15 @@ export default function Landing() {
               className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 px-8 h-12 text-base font-medium"
             >
               Crear cuenta <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+
+            <Button 
+              size="lg" 
+              variant="outline"
+              onClick={() => navigate("/login")} 
+              className="w-full sm:w-auto border-border text-foreground hover:bg-muted h-12 px-8 text-base"
+            >
+              Ingresar
             </Button>
           </div>
         </div>
