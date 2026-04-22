@@ -41,9 +41,9 @@ export default function AvailableServices() {
     fetchServices();
   }, [user]);
 
-  // Función para construir el string de visualización (Tipo | Meses | Correo)
+  // Función para construir el string de visualización (Tipo/Nombre | Meses | Correo | Contraseña | Codigo Acceso/Pin)
   const buildServiceDisplay = (s: any) => {
-    return `${s.name || ''} | ${s.months || '1'} meses | ${s.email || ''}`;
+    return `${s.name || ''} | ${s.months || '1'} meses | ${s.email || '' } | ${s.password || '' } | ${s.accessCodes || '' }`;
   };
 
   const filtered = useMemo(() => {
@@ -132,7 +132,7 @@ export default function AvailableServices() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {["Datos del servicio", "Cant.", "G. unitario", "G. total", "Proveedor", "Fecha compra", "Acciones"].map(h => (
+                {["Datos del servicio(Tipo/Nombre | Meses | Correo | Contraseña | Codigo Acceso/Pin)", "Cant.", "G. unitario", "G. total", "Proveedor", "Fecha compra", "Acciones"].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>

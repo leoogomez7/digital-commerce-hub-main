@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Loader2 } from "lucide-react";
+import { Save, ArrowLeft, Loader2, ShoppingBag} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // --- NUBE ---
 import { client } from "@/lib/db"; 
@@ -41,6 +41,7 @@ export default function NewProductSale() {
 
   const selectedProduct = products.find(p => p.id === selectedId);
   const totalCost = form.quantity * (selectedProduct?.unitCost || 0);
+  const totalSalePrice = form.quantity * form.salePrice; // Cálculo automático
   const profit = form.salePrice - totalCost - form.externalCosts;
 
   useEffect(() => {
@@ -83,36 +84,111 @@ export default function NewProductSale() {
   if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="space-y-6 max-w-3xl p-4">
-      <h1 className="text-2xl font-bold text-foreground">Nueva Venta de Producto</h1>
-      <div className="glass-card p-5 space-y-4">
-        <Field label="Cliente"><Input value={form.clientName} onChange={e => setForm({...form, clientName: e.target.value})} className={ic} /></Field>
-        <Field label="Producto">
+    <div className="space-y-6 max-w-3xl p-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Nueva Venta de Producto</h1>
+        </div>
+      </div>
+
+      <div className="glass-card p-6 space-y-4 border border-border/50 shadow-sm rounded-xl">
+        <div className="flex items-center gap-2 text-primary mb-2">
+          <ShoppingBag className="h-5 w-5" />
+          <h2 className="text-sm font-bold uppercase tracking-wider">Venta de producto</h2>
+        </div>
+
+        <Field label="Nombre del Cliente">
+          <Input 
+            value={form.clientName} 
+            onChange={e => setForm({...form, clientName: e.target.value})} 
+            className={ic} 
+          />
+        </Field>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field label="Canal de Venta">
+            <Select value={form.salesChannel} onValueChange={val => setForm({...form, salesChannel: val})}>
+              <SelectTrigger className={ic}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {salesChannels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Fecha de Venta">
+            <Input type="date" value={form.saleDate} onChange={e => setForm({...form, saleDate: e.target.value})} className={ic} />
+          </Field>
+        </div>
+
+        <Field label="Seleccionar Producto en Stock">
           <Select value={selectedId} onValueChange={setSelectedId}>
-            <SelectTrigger className={ic}><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+            <SelectTrigger className={ic}>
+              <SelectValue placeholder={products.length > 0 ? "Elige un producto" : "No hay stock disponible"} />
+            </SelectTrigger>
             <SelectContent>
-              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} - {p.brand} (Stock: {p.quantity})</SelectItem>)}
+              {products.map(p => (
+                <SelectItem key={p.id} value={p.id} disabled={(p.stock ?? p.quantity) <= 0}>
+                  {p.name} - {p.brand} - {p.category} - talle/medida: {p.size} - ({(p.stock ?? p.quantity)} disponibles)
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Cantidad"><Input type="number" value={form.quantity} onChange={e => setForm({...form, quantity: +e.target.value})} className={ic} /></Field>
-          <Field label="Precio Venta ($)"><Input type="number" value={form.salePrice} onChange={e => setForm({...form, salePrice: +e.target.value})} className={ic} /></Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Cantidad">
+            <Input 
+              type="number" 
+              value={form.quantity} 
+              onChange={e => setForm({...form, quantity: Math.max(1, +e.target.value)})} 
+              className={ic} 
+            />
+          </Field>
+          <Field label="Precio Unitario ($)">
+            <Input 
+              type="number" 
+              value={form.salePrice || ""} 
+              onChange={e => setForm({...form, salePrice: Math.max(0, +e.target.value)})} 
+              className={ic} 
+            />
+          </Field>
         </div>
-        <div className={`p-4 rounded-lg font-bold ${profit >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-          Ganancia Estimada: ${profit.toLocaleString()}
-        </div>
-        <Button onClick={() => setShowConfirm(true)} disabled={saving || !selectedId} className="w-full">
-          {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Registrar Venta
+
+        {selectedId && (
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Venta Final ({form.quantity} x ${form.salePrice}):</span>
+              <span>${totalSalePrice.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between font-bold border-t border-primary/10 pt-2">
+              <span className="text-foreground">Ganancia Estimada:</span>
+              <span className={profit >= 0 ? 'text-green-500' : 'text-red-500'}>
+                ${profit.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <Button 
+          onClick={() => setShowConfirm(true)} 
+          disabled={saving || !selectedId || !form.clientName || form.quantity > (selectedProduct?.stock ?? selectedProduct?.quantity)} 
+          className="w-full h-11 bg-primary hover:bg-primary/90 text-white"
+        >
+          {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} 
+          Registrar Venta
         </Button>
       </div>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>¿Confirmar Venta?</AlertDialogTitle></AlertDialogHeader>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar venta?</AlertDialogTitle>
+          </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button variant="ghost" onClick={() => setShowConfirm(false)}>Cancelar</Button>
-            <Button onClick={confirmSave} disabled={saving}>Confirmar</Button>
+            <AlertDialogCancel>Revisar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSave}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -4,13 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Loader2, MonitorSmartphone } from "lucide-react";
+import { Save, ArrowLeft, Loader2, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// --- NUBE ---
-import { client } from "@/lib/db"; 
-import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { generateId } from "@/lib/store";
-// ------------
+
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -26,10 +22,9 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 );
 const ic = "bg-muted border-border text-foreground h-9 text-sm";
 
-export default function NewServiceSale() {
+export default function DemoNewProductSale() {
   const navigate = useNavigate();
-  const { user } = useKindeAuth();
-  const [services, setServices] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -37,88 +32,83 @@ export default function NewServiceSale() {
 
   const [form, setForm] = useState({
     clientName: "", 
-    salesChannel: "", 
+    salesChannel: "WhatsApp", 
     quantity: 1, 
     externalCosts: 0, 
-    unitPrice: 0, // Precio Unitario
+    unitPrice: 0, // Cambiado de salePrice a unitPrice
     saleDate: new Date().toISOString().split('T')[0]
   });
 
-  // CARGAR SERVICIOS DESDE TURSO
+  // CARGAR PRODUCTOS DESDE LA "DB" DE LA DEMO
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await client.execute({
-          sql: "SELECT * FROM available_services WHERE user_id = ? AND stock > 0",
-          args: [user?.id || ""]
-        });
-        setServices(res.rows);
-      } catch (e) {
-        console.error("Error cargando inventario:", e);
-      } finally {
-        setLoading(false);
+    const timer = setTimeout(() => {
+      const savedProducts = JSON.parse(sessionStorage.getItem("demo_available_products") || "[]");
+      
+      if (savedProducts.length === 0) {
+        const defaultProducts = [
+          { id: "p1", name: "Mouse Inalámbrico", brand: "Logitech", quantity: 15, unitCost: 1200 },
+          { id: "p2", name: "Teclado Mecánico", brand: "Redragon", quantity: 8, unitCost: 4500 },
+        ];
+        setProducts(defaultProducts);
+      } else {
+        setProducts(savedProducts);
       }
-    }
-    if (user) load();
-  }, [user]);
+      setLoading(false);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
-  const selectedService = services.find(s => s.id === selectedId || s.id?.toString() === selectedId);
+  const selectedProduct = products.find(p => p.id === selectedId);
   
-  // Cálculos Automáticos
-  const totalCost = form.quantity * (Number(selectedService?.unitCost) || 0);
-  const totalSalePrice = form.quantity * form.unitPrice; // Multiplicación: Unitario * Cantidad
+  // Lógica de Negocio: Multiplicación solicitada
+  const totalCost = form.quantity * (selectedProduct?.unitCost || 0);
+  const totalSalePrice = form.quantity * form.unitPrice; // Cálculo automático
   const profit = totalSalePrice - totalCost - form.externalCosts;
 
-  const confirmSave = async () => {
-    if (form.quantity > (selectedService?.stock || 0)) {
+  const confirmSave = () => {
+    const currentStock = selectedProduct?.stock ?? selectedProduct?.quantity;
+    if (form.quantity > currentStock) {
       toast.error("No hay suficiente stock disponible");
       setShowConfirm(false);
       return;
     }
 
     setSaving(true);
-    try {
-      const serviceData = `${selectedService.name} (${selectedService.months} meses)`;
-      
-      await client.batch([
-        {
-          sql: `INSERT INTO service_sales (id, clientName, serviceId, serviceData, quantity, salePrice, profit, totalCost, externalCosts, user_id, createdAt, saleDate, salesChannel, customerEmail) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            generateId(), 
-            form.clientName, 
-            selectedId, 
-            serviceData, 
-            form.quantity, 
-            totalSalePrice, 
-            profit, 
-            totalCost, 
-            form.externalCosts, 
-            user?.id, 
-            new Date().toISOString(), 
-            form.saleDate, 
-            form.salesChannel,
-            selectedService.email
-          ]
-        },
-        {
-          sql: "UPDATE available_services SET stock = stock - ? WHERE id = ?",
-          args: [form.quantity, selectedId]
-        }
-      ], "write");
+    
+    setTimeout(() => {
+      // 1. Guardar la venta en el historial
+      const existingSales = JSON.parse(sessionStorage.getItem("demo_product_sales") || "[]");
+      const newSale = {
+        ...form,
+        id: Date.now().toString(),
+        productData: `${selectedProduct.name} (${selectedProduct.brand})`,
+        salePrice: totalSalePrice, // Guardamos el TOTAL calculado
+        totalCost,
+        profit,
+        createdAt: new Date().toISOString()
+      };
+      sessionStorage.setItem("demo_product_sales", JSON.stringify([newSale, ...existingSales]));
 
-      toast.success("Venta digital registrada con éxito");
-      navigate("/dashboard/service-sales");
-    } catch (e) {
-      console.error(e);
-      toast.error("Error al procesar la venta en la nube");
-    } finally {
+      // 2. Descontar stock
+      const updatedProducts = products.map(p => 
+        p.id === selectedId ? { ...p, stock: (p.stock ?? p.quantity) - form.quantity, quantity: (p.stock ?? p.quantity) - form.quantity } : p
+      );
+      sessionStorage.setItem("demo_available_products", JSON.stringify(updatedProducts));
+
       setSaving(false);
       setShowConfirm(false);
-    }
+      toast.success("Venta registrada con éxito");
+      navigate("/demo/product-sales");
+    }, 1200);
   };
 
-  if (loading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+  if (loading) return (
+    <div className="h-64 flex flex-col items-center justify-center space-y-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-muted-foreground text-sm">Cargando inventario demo...</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6 max-w-3xl p-4 animate-fade-in">
@@ -127,18 +117,22 @@ export default function NewServiceSale() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold text-foreground">Nueva Venta Digital</h1>
+          <h1 className="text-2xl font-bold text-foreground">Nueva Venta de Producto</h1>
+        </div>
+        <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded border border-primary/20 uppercase tracking-widest">
+          Simulador
         </div>
       </div>
 
       <div className="glass-card p-6 space-y-4 border border-border/50 shadow-sm rounded-xl">
         <div className="flex items-center gap-2 text-primary mb-2">
-          <MonitorSmartphone className="h-5 w-5" />
-          <h2 className="text-sm font-bold uppercase tracking-wider">Venta de servicio digital</h2>
+          <ShoppingBag className="h-5 w-5" />
+          <h2 className="text-sm font-bold uppercase tracking-wider">Formulario de Venta</h2>
         </div>
 
         <Field label="Nombre del Cliente">
           <Input 
+            placeholder="Ej: Juan Pérez"
             value={form.clientName} 
             onChange={e => setForm({...form, clientName: e.target.value})} 
             className={ic} 
@@ -148,7 +142,7 @@ export default function NewServiceSale() {
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Canal de Venta">
             <Select value={form.salesChannel} onValueChange={val => setForm({...form, salesChannel: val})}>
-              <SelectTrigger className={ic}><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+              <SelectTrigger className={ic}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {salesChannels.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
@@ -159,15 +153,15 @@ export default function NewServiceSale() {
           </Field>
         </div>
 
-        <Field label="Seleccionar Cuenta en Stock">
+        <Field label="Seleccionar Producto en Stock">
           <Select value={selectedId} onValueChange={setSelectedId}>
             <SelectTrigger className={ic}>
-              <SelectValue placeholder={services.length > 0 ? "Elige una cuenta" : "No hay stock disponible"} />
+              <SelectValue placeholder={products.length > 0 ? "Elige un producto" : "No hay stock disponible"} />
             </SelectTrigger>
             <SelectContent>
-              {services.map(s => (
-                <SelectItem key={s.id} value={s.id.toString()}>
-                  {s.name} - {s.email} - {s.months} meses - ({s.stock} disponibles)
+              {products.map(p => (
+                <SelectItem key={p.id} value={p.id} disabled={(p.stock ?? p.quantity) <= 0}>
+                  {p.name} - {p.brand} ({(p.stock ?? p.quantity)} disponibles)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -188,6 +182,7 @@ export default function NewServiceSale() {
               type="number" 
               value={form.unitPrice || ""} 
               onChange={e => setForm({...form, unitPrice: Math.max(0, +e.target.value)})} 
+              placeholder="0.00"
               className={ic} 
             />
           </Field>
@@ -210,22 +205,22 @@ export default function NewServiceSale() {
 
         <Button 
           onClick={() => setShowConfirm(true)} 
-          disabled={saving || !selectedId || !form.clientName || form.quantity > (selectedService?.stock || 0)} 
-          className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-bold"
+          disabled={saving || !selectedId || !form.clientName || form.quantity > (selectedProduct?.stock ?? selectedProduct?.quantity)} 
+          className="w-full h-11 bg-primary hover:bg-primary/90 text-white"
         >
           {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} 
-          Registrar Venta Digital
+          Registrar Venta
         </Button>
       </div>
 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Confirmar venta digital?</AlertDialogTitle>
+            <AlertDialogTitle>¿Confirmar venta?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Revisar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSave} className="bg-primary">Confirmar</AlertDialogAction>
+            <AlertDialogAction onClick={confirmSave}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

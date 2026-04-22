@@ -4,16 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Loader2 , Eye, EyeOff} from "lucide-react";
+import { Save, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// --- IMPORTACIONES CLAVE PARA LA NUBE ---
-import { client } from "@/lib/db"; 
-import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { generateId } from "@/lib/store"; 
-// ---------------------------------------
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -25,80 +20,54 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 
 const ic = "bg-muted border-border text-foreground placeholder:text-muted-foreground h-9 text-sm";
 
-export default function NewService() {
+export default function DemoNewService() {
   const navigate = useNavigate();
-  const { user } = useKindeAuth();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-    const [showPass, setShowPass] = useState(false); // Para mostrar/ocultar pass
+  const [showPass, setShowPass] = useState(false); // Para mostrar/ocultar pass
 
   const [form, setForm] = useState({
-    type: "", months: 1, email: "", password: "", accessCodes: "",
-    quantity: 1, unitCost: 0, supplierName: "", purchaseDate: "",
-    description: "", observations: "",
+    type: "", 
+    months: "", 
+    email: "", 
+    password: "", 
+    accessCode: "", 
+    quantity: 0, 
+    unitCost: 0, 
+    supplierName: "", 
+    purchaseDate: new Date().toISOString().split('T')[0], // Campo de fecha agregado
+    description: "", 
+    observations: "", 
   });
 
-  const totalCost = form.quantity * form.unitCost;
-  const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
+  const set = (key: keyof typeof form, value: string | number) => 
+    setForm(f => ({ ...f, [key]: value }));
 
-  const doSave = () => {
-    if (!form.type) { 
-      toast.error("Completa el tipo de servicio"); 
-      return; 
-    }
-    setShowConfirm(true);
-  };
-
-  // FUNCIÓN PARA GUARDAR EN TURSO (SQLITE NUBE)
-  const confirmSave = async () => {
-    if (!user?.id) {
-      toast.error("Error de autenticación");
-      return;
-    }
-
+  const confirmSave = () => {
+    if (isSaving) return;
     setIsSaving(true);
-    try {
-      await client.execute({
-        sql: `INSERT INTO available_services (
-          id, name, months, email, password, accessCodes, 
-          quantity, unitCost, totalCost, supplierName, 
-          purchaseDate, description, observations, user_id, createdAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          generateId(), 
-          form.type, 
-          form.months, 
-          form.email, 
-          form.password, 
-          form.accessCodes, 
-          form.quantity, 
-          form.unitCost, 
-          totalCost, 
-          form.supplierName, 
-          form.purchaseDate, 
-          form.description, 
-          form.observations, 
-          user.id, 
-          new Date().toISOString()
-        ]
-      });
-
-      toast.success("Servicio digital guardado en la nube");
-      
-      // Limpiar formulario tras éxito
-      setForm({ 
-        type: "", months: 0, email: "", password: "", accessCodes: "", 
-        quantity: 0, unitCost: 0, supplierName: "", purchaseDate: "", 
-        description: "", observations: "" 
-      });
-      
-    } catch (error) {
-      console.error("Error en Turso:", error);
-      toast.error("Error al guardar en la base de datos");
-    } finally {
-      setIsSaving(false);
-      setShowConfirm(false);
-    }
+    
+    setTimeout(() => {
+      try {
+        const existing = JSON.parse(sessionStorage.getItem("demo_available_services") || "[]");
+        const newItem = { 
+          ...form, 
+          id: Date.now().toString(), 
+          name: form.type,
+          stock: form.quantity,
+          createdAt: new Date().toISOString() 
+        };
+        
+        sessionStorage.setItem("demo_available_services", JSON.stringify([newItem, ...existing]));
+        toast.success("Servicio guardado exitosamente");
+        navigate("/demo/available-services");
+      } catch (error) {
+        toast.error("Error al guardar en el storage");
+      } finally {
+        setIsSaving(false);
+        setShowConfirm(false);
+      }
+    }, 800);
   };
 
   return (
@@ -107,26 +76,24 @@ export default function NewService() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">Nuevo Servicio Digital</h1>
+        <h1 className="text-2xl font-bold">Nuevo Servicio (Demo)</h1>
       </div>
 
-
       <div className="glass-card p-6 space-y-4 border rounded-xl shadow-sm bg-card text-card-foreground">
-       <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Ingreso de servicio digital</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label="Tipo/Nombre">
-            <Input value={form.type} onChange={e => set("type", e.target.value)}  className={ic} />
+            <Input value={form.type} onChange={e => set("type", e.target.value)} placeholder="ej: Netflix" className={ic} />
           </Field>
           <Field label="Fecha de Compra">
             <Input type="date" value={form.purchaseDate} onChange={e => set("purchaseDate", e.target.value)} className={ic} />
           </Field>
           <Field label="Proveedor (Nombre y Apellido)">
-            <Input value={form.supplierName} onChange={e => set("supplierName", e.target.value)}  className={ic} />
+            <Input value={form.supplierName} onChange={e => set("supplierName", e.target.value)} placeholder="Ej: Juan Proveedor" className={ic} />
           </Field>
           
           {/* Fila de Credenciales */}
           <Field label="Correo Electrónico">
-            <Input type="email" value={form.email} onChange={e => set("email", e.target.value)}  className={ic} />
+            <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="admin@cuenta.com" className={ic} />
           </Field>
           <Field label="Contraseña">
             <div className="relative">
@@ -147,7 +114,7 @@ export default function NewService() {
           </Field>
 
           <Field label="Código de Acceso / PIN">
-            <Input value={form.accessCodes} onChange={e => set("accessCode", e.target.value)} className={ic} />
+            <Input value={form.accessCode} onChange={e => set("accessCode", e.target.value)} placeholder="Ej: PIN 1234" className={ic} />
           </Field>
           <Field label="Meses del servicio digital">
             <Input type="number" value={form.months} onChange={e => set("months", +e.target.value)} className={ic} />
@@ -155,16 +122,16 @@ export default function NewService() {
           <Field label="Cantidad">
             <Input type="number" value={form.quantity} onChange={e => set("quantity", +e.target.value)} className={ic} />
           </Field>
-          <Field label="Gasto Unitario ($)">
+          <Field label="Costo Unitario ($)">
             <Input type="number" value={form.unitCost} onChange={e => set("unitCost", +e.target.value)} className={ic} />
           </Field>
           
           <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
             <Field label="Descripción">
-              <Textarea value={form.description} onChange={e => set("description", e.target.value)}  className="bg-muted min-h-[80px]" />
+              <Textarea value={form.description} onChange={e => set("description", e.target.value)} placeholder="Detalles del plan..." className="bg-muted min-h-[80px]" />
             </Field>
-            <Field label="Observaciones">
-              <Textarea value={form.observations} onChange={e => set("observations", e.target.value)}  className="bg-muted min-h-[80px]" />
+            <Field label="Observaciones Internas">
+              <Textarea value={form.observations} onChange={e => set("observations", e.target.value)} placeholder="Notas privadas..." className="bg-muted min-h-[80px]" />
             </Field>
           </div>
         </div>

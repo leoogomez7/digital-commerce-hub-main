@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { toast } from "sonner";
 import {
   LayoutDashboard, Package, Monitor, ShoppingCart, MonitorSmartphone,
   CalendarDays, CalendarRange, Calendar, LogOut, Menu, X, Zap, ChevronDown,
@@ -45,9 +44,6 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // LÓGICA DE DEMO: Usamos sessionStorage para que al recargar se borre todo
-  const isDemo = sessionStorage.getItem("is_demo") === "true";
-
   const [profileForm, setProfileForm] = useState({ name: "" });
 
   useEffect(() => {
@@ -55,22 +51,17 @@ export default function DashboardLayout() {
   }, [user]);
   
   useEffect(() => {
-    // Si no es demo y no está autenticado, redirigir a landing
-    if (!isLoading && !isAuthenticated && !isDemo) {
+    // Protección estricta: Si no hay login real, fuera.
+    if (!isLoading && !isAuthenticated) {
       navigate("/", { replace: true });
     }
-  }, [isAuthenticated, isLoading, isDemo, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   const handleLogout = () => {
-    sessionStorage.clear(); // Limpia la sesión demo
-    if (!isDemo) {
-      logout();
-    } else {
-      navigate("/", { replace: true });
-    }
+    logout();
   };
 
-  if (isLoading && !isDemo) {
+  if (isLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -78,9 +69,9 @@ export default function DashboardLayout() {
     );
   }
 
-  if (!isAuthenticated && !isDemo) return null;
+  if (!isAuthenticated) return null;
 
-  const userName = isDemo ? "Invitado Demo" : (user?.givenName || "Usuario");
+  const userName = user?.givenName || "Usuario";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -159,9 +150,7 @@ export default function DashboardLayout() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isDemo ? "Se borrarán los datos temporales de la demo." : "Se finalizará tu sesión actual."}
-            </AlertDialogDescription>
+            <AlertDialogDescription>Se finalizará tu sesión actual.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -177,10 +166,10 @@ export default function DashboardLayout() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
-              <Input value={isDemo ? "Invitado Demo" : profileForm.name} readOnly className="bg-muted" />
+              <Input value={profileForm.name} readOnly className="bg-muted" />
             </div>
             <p className="text-xs text-muted-foreground italic">
-              {isDemo ? "Modo demo: Los datos no son editables." : "Edita tu nombre desde tu cuenta de Kinde."}
+              Edita tu nombre desde tu cuenta de Kinde.
             </p>
           </div>
         </DialogContent>

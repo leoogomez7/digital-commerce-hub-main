@@ -7,22 +7,12 @@ import {
   TrendingUp, 
   TrendingDown, 
   Users, 
-  Package, 
+  Package,
+  Activity, 
   Monitor, 
   ShoppingCart,
   Loader2 
 } from "lucide-react";
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from "recharts";
 
 export default function Dashboard() {
   const { isAuthenticated, isLoading, user } = useKindeAuth();
@@ -134,6 +124,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in p-2">
       <h1 className="text-2xl font-bold text-foreground">Panel Principal</h1>
+      <p className="text-muted-foreground text-sm">Bienvenido, {user?.givenName}. Resumen de tu actividad.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c, i) => (
@@ -145,54 +136,37 @@ export default function Dashboard() {
             <p className="text-xl font-bold text-foreground">{c.value}</p>
           </div>
         ))}
+
+<div className="glass-card p-6 border border-border/50 bg-primary/5 flex items-center justify-center">
+  <div className="text-center">
+    <p className="text-xs font-bold text-muted-foreground uppercase mb-3">Estado del Sistema</p>
+    
+    {/* Contenedor flexible para poner ambos uno al lado del otro */}
+    <div className="flex flex-wrap items-center justify-center gap-4">
+      
+      {/* Badge 1: Base de Datos */}
+      <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm">
+        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+        Base de Datos Activa
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-medium text-foreground mb-4">Ganancias mensuales ($)</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(217,33%,17%)" />
-                <XAxis dataKey="mes" tick={{ fill: 'hsl(215,20%,55%)', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'hsl(215,20%,55%)', fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'hsl(222,47%,9%)', 
-                    border: '1px solid hsl(217,33%,17%)', 
-                    borderRadius: 8, 
-                    color: 'hsl(210,40%,98%)' 
-                  }} 
-                />
-                <Line type="monotone" dataKey="ganancias" stroke="hsl(142,76%,36%)" strokeWidth={2} dot={{ fill: 'hsl(142,76%,36%)' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* Badge 2: Sincronizado (Compacto) */}
+      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/20 rounded-md">
+        <Activity className="h-3 w-3 text-primary" />
+        <span className="text-[9px] font-bold text-primary uppercase tracking-tight">Sincronizado</span>
+      </div>
 
-        <div className="glass-card p-5">
-          <h3 className="text-sm font-medium text-foreground mb-4">Ventas mensuales (unidades)</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(217,33%,17%)" />
-                <XAxis dataKey="mes" tick={{ fill: 'hsl(215,20%,55%)', fontSize: 12 }} />
-                <YAxis tick={{ fill: 'hsl(215,20%,55%)', fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'hsl(222,47%,9%)', 
-                    border: '1px solid hsl(217,33%,17%)', 
-                    borderRadius: 8, 
-                    color: 'hsl(210,40%,98%)' 
-                  }} 
-                />
-                <Bar dataKey="cantidad" fill="hsl(217,91%,60%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+    </div>
+  </div>
+</div>
+
+
+
       </div>
     </div>
+
+
+
   );
 }
 

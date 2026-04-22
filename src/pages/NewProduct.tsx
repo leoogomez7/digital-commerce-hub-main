@@ -83,18 +83,30 @@ export default function NewProduct() {
       <div className="glass-card p-5 space-y-4">
         <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Ingreso de producto</h2>
         <div className="grid sm:grid-cols-2 gap-3">
-          <Field label="Nombre"><Input value={form.name} onChange={e => set("name", e.target.value)} className={ic} /></Field>
+          <Field label="Nombre del producto"><Input value={form.name} onChange={e => set("name", e.target.value)} className={ic} /></Field>
           <Field label="Marca"><Input value={form.brand} onChange={e => set("brand", e.target.value)} className={ic} /></Field>
-          <Field label="Rubro"><Input value={form.category} onChange={e => set("category", e.target.value)} className={ic} /></Field>
-          <Field label="Talle"><Input value={form.size} onChange={e => set("size", e.target.value)} className={ic} /></Field>
+          <Field label="Rubro/Categoria"><Input value={form.category} onChange={e => set("category", e.target.value)} className={ic} /></Field>
+          <Field label="Talle/Medida"><Input value={form.size} onChange={e => set("size", e.target.value)} className={ic} /></Field>
           <Field label="Cantidad"><Input type="number" value={form.quantity} onChange={e => set("quantity", +e.target.value)} className={ic} /></Field>
-          <Field label="Costo Unitario ($)"><Input type="number" value={form.unitCost} onChange={e => set("unitCost", +e.target.value)} className={ic} /></Field>
+          <Field label="Gasto Unitario ($)"><Input type="number" value={form.unitCost} onChange={e => set("unitCost", +e.target.value)} className={ic} /></Field>
         </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Field label="Proveedor">
+              <Input value={form.supplierName} onChange={e => set("supplierName", e.target.value)} className={ic} />
+            </Field>
+            <Field label="Fecha de Compra">
+              <Input type="date" value={form.purchaseDate} onChange={e => set("purchaseDate", e.target.value)} className={ic} />
+            </Field>
+          </div>
+
         <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
           <p className="text-xs text-muted-foreground">Inversión total: <span className="text-lg font-bold text-foreground">${totalCost.toLocaleString()}</span></p>
         </div>
         <Field label="Descripción"><Textarea value={form.description} onChange={e => set("description", e.target.value)} className={ic} /></Field>
+        <Field label="Observaciones"><Textarea value={form.description} onChange={e => set("description", e.target.value)} className={ic} /></Field>
       </div>
+      
 
       <div className="flex gap-3">
         <Button onClick={doSave} disabled={isSaving} className="bg-primary text-primary-foreground">

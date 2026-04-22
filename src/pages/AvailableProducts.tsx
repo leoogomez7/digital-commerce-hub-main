@@ -133,7 +133,7 @@ export default function AvailableProducts() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                {["Datos del producto", "Cant.", "G. unitario", "G. total", "Proveedor", "Fecha compra", "Acciones"].map(h => (
+                {["Datos del producto (Nombre | Marca | Rubro | Talle)", "Cant.", "G. unitario", "G. total", "Proveedor", "Fecha compra", "Acciones"].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
                 ))}
               </tr>

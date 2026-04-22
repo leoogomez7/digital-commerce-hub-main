@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { 
   BarChart3, Users, Package, FileText, TrendingUp, 
   Shield, ArrowRight, Zap 
@@ -17,12 +16,10 @@ const features = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { login, register } = useKindeAuth();
 
-  // CORRECCIÓN AQUÍ: Demo directa y volátil
+  // CORRECCIÓN: Ahora apunta a la ruta de inicio de la demo
   const handleDemo = () => {
-    sessionStorage.setItem("is_demo", "true"); // Se borra al cerrar/recargar la pestaña
-    navigate("/dashboard"); // Directo al dashboard sin pasar por AdminGuard
+    navigate("/demo-start"); 
   };
 
   return (
@@ -35,7 +32,6 @@ export default function Landing() {
             <span className="text-xl font-bold text-foreground">Control de ventas</span>
           </div>
           <div className="flex items-center gap-3">
-            {/* Estos dispararán el AdminGuard en App.tsx */}
             <Button 
               onClick={() => navigate("/register")} 
               className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -68,7 +64,7 @@ export default function Landing() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {/* BOTÓN DEMO: Directo y sin claves */}
+            {/* BOTÓN DEMO: Va a la página de bienvenida de la demo */}
             <Button 
               size="lg" 
               onClick={handleDemo} 
