@@ -21,13 +21,14 @@ import ReportMonthly from "./pages/ReportMonthly";
 import ReportWeekly from "./pages/ReportWeekly";
 import ReportAnnual from "./pages/ReportAnnual";
 import NotFound from "./pages/NotFound";
+import { AdminGuard } from "./components/AdminGuard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <KindeProvider
-    clientId="7f41da4eb4f0421d8260d299a4ae2dad"
-    domain="https://lrg07.kinde.com"
+    clientId={import.meta.env.VITE_KINDE_CLIENT_ID}
+    domain={import.meta.env.VITE_KINDE_DOMAIN}
     redirectUri={`${window.location.origin}/dashboard`} 
     logoutUri={`${window.location.origin}/login`} 
   >
@@ -40,7 +41,6 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="new-product" element={<NewProduct />} />
@@ -54,6 +54,8 @@ const App = () => (
               <Route path="report-monthly" element={<ReportMonthly />} />
               <Route path="report-weekly" element={<ReportWeekly />} />
               <Route path="report-annual" element={<ReportAnnual />} />
+              <Route path="/login" element={<AdminGuard><Login /></AdminGuard>} />
+              <Route path="/register" element={<AdminGuard><Register /></AdminGuard>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { useKindeAuth } from "@kinde-oss/kinde-auth-react"; // Cambiado a Kinde
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { toast } from "sonner";
 import {
   LayoutDashboard, Package, Monitor, ShoppingCart, MonitorSmartphone,
@@ -18,7 +18,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
 const navItems = [
@@ -41,38 +41,32 @@ export default function DashboardLayout() {
   const [showLogout, setShowLogout] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
-  // Hooks de Kinde
   const { user, logout, isAuthenticated, isLoading } = useKindeAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [profileForm, setProfileForm] = useState({
-    name: "",
-  });
+  // 1. Detectar si el usuario entró por modo Demo
+  const isDemo = localStorage.getItem("is_demo") === "true";
 
-  // Sincronizar datos del usuario de Kinde al formulario
+  // 2. Protección de ruta híbrida (Kinde o Demo)
   useEffect(() => {
-    if (user) setProfileForm({ name: user.givenName || "" });
-  }, [user]);
-  
-
-  // Protección de ruta (por si entran directo por URL)
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/login", { replace: true });
+    if (!isLoading && !isAuthenticated && !isDemo) {
+      navigate("/", { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, isDemo, navigate]);
 
+  // 3. Lógica de cierre de sesión con limpieza total para Demo
   const handleLogout = () => {
-    logout();
+    if (isDemo) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "/"; // Recarga dura para resetear estados de memoria
+    } else {
+      logout();
+    }
   };
 
-  const handleSaveProfile = () => {
-    toast.info("Para cambiar tu nombre, edita tu perfil en la cuenta de Kinde.");
-    setShowProfile(false);
-  };
-
-  if (isLoading) {
+  if (isLoading && !isDemo) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -80,7 +74,10 @@ export default function DashboardLayout() {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated && !isDemo) return null;
+
+  // Definir nombre e inicial según el tipo de sesión
+  const userName = isDemo ? "Invitado Demo" : (user?.givenName || "Usuario");
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -120,7 +117,7 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen max-w-full overflow-x-hidden">
         <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50 backdrop-blur-xl sticky top-0 z-30">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground p-2">
@@ -133,7 +130,7 @@ export default function DashboardLayout() {
                 <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center">
                   <User className="h-4 w-4 text-primary" />
                 </div>
-                <span className="hidden sm:inline">{user?.givenName || "Usuario"}</span>
+                <span className="hidden sm:inline">{userName}</span>
                 <ChevronDown className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
@@ -159,7 +156,9 @@ export default function DashboardLayout() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-            <AlertDialogDescription>Se finalizará tu sesión actual.</AlertDialogDescription>
+            <AlertDialogDescription>
+              {isDemo ? "Al salir del modo demo, se borrarán todos los cambios temporales." : "Se finalizará tu sesión actual."}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -174,16 +173,12 @@ export default function DashboardLayout() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
-              <Input value={profileForm.name} readOnly className="bg-muted" />
+              <Input value={userName} readOnly className="bg-muted" />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={user?.email || ""} readOnly className="bg-muted opacity-60" />
-            </div>
+            <p className="text-xs text-muted-foreground italic">
+              {isDemo ? "Estás en modo demo. Los datos de perfil no son editables." : "Para cambiar tu nombre, edita tu perfil en Kinde."}
+            </p>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setShowProfile(false)}>Cerrar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

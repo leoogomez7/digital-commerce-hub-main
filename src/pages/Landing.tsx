@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Users, Package, FileText, TrendingUp, Shield, ArrowRight, Zap } from "lucide-react";
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
+import { 
+  BarChart3, Users, Package, FileText, TrendingUp, 
+  Shield, ArrowRight, Zap 
+} from "lucide-react";
 
 const features = [
   { icon: BarChart3, title: "Control de Ventas", desc: "Gestiona todas tus ventas de productos y servicios digitales en un solo lugar." },
@@ -13,9 +17,17 @@ const features = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { login, register } = useKindeAuth();
+
+  // Función para entrar como Demo
+  const handleDemo = () => {
+    localStorage.setItem("is_demo", "true");
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex items-center justify-between h-16 px-6">
           <div className="flex items-center gap-2">
@@ -23,12 +35,17 @@ export default function Landing() {
             <span className="text-xl font-bold text-foreground">Control de ventas</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground">Ingresar</Button>
-            <Button onClick={() => navigate("/register")} className="bg-primary text-primary-foreground hover:bg-primary/90">Crear cuenta</Button>
+            <Button variant="ghost" onClick={() => navigate("/login")} className="text-muted-foreground hover:text-foreground">
+              Ingresar
+            </Button>
+            <Button onClick={() => navigate("/register")} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Crear cuenta
+            </Button>
           </div>
         </div>
       </nav>
 
+      {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
         <div className="container mx-auto text-center max-w-4xl animate-fade-in">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-sm mb-8">
@@ -41,16 +58,30 @@ export default function Landing() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
             Sistema completo para la gestión de ventas de productos y servicios digitales. Control total de clientes, gastos y ganancias automáticas.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <Button size="lg" onClick={() => navigate("/register")} className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 h-12 text-base">
-              Comenzar gratis <ArrowRight className="ml-2 h-4 w-4" />
+          
+          {/* Botones principales */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button 
+              size="lg" 
+              onClick={handleDemo} 
+              className="w-full sm:w-auto bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 h-12 text-base font-medium"
+            >
+              Probar demo <Zap className="ml-2 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/login")} className="border-border text-foreground hover:bg-muted h-12 px-8 text-base">Ingresar</Button>
+            
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/register")} 
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 px-8 h-12 text-base font-medium"
+            >
+              Crear cuenta <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-6">
+      {/* Features Section */}
+      <section className="py-20 px-6 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-foreground mb-4">Todo lo que necesitas</h2>
           <p className="text-muted-foreground text-center mb-16 max-w-xl mx-auto">Herramientas profesionales para gestionar tu negocio digital de forma eficiente.</p>
@@ -68,18 +99,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-20 px-6">
-        <div className="container mx-auto max-w-3xl text-center">
-          <div className="glass-card p-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">¿Listo para comenzar?</h2>
-            <p className="text-muted-foreground mb-8">Crea tu cuenta gratuita y comienza a gestionar tus ventas hoy mismo.</p>
-            <Button size="lg" onClick={() => navigate("/register")} className="bg-primary text-primary-foreground hover:bg-primary/90 px-10 h-12">Crear cuenta gratuita</Button>
-          </div>
-        </div>
-      </section>
-
       <footer className="border-t border-border py-8 px-6">
-        <div className="container mx-auto text-center text-sm text-muted-foreground">© 2026 Control de ventas. Todos los derechos reservados.</div>
+        <div className="container mx-auto text-center text-sm text-muted-foreground">
+          © {new Date().getFullYear()} Control de ventas. Todos los derechos reservados.
+        </div>
       </footer>
     </div>
   );
