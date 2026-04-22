@@ -49,7 +49,7 @@ export default function NewServiceSale() {
     async function load() {
       try {
         const res = await client.execute({
-          sql: "SELECT * FROM available_services WHERE user_id = ? AND stock > 0",
+          sql: "SELECT * FROM available_services WHERE user_id = ? AND quantity > 0",
           args: [user?.id || ""]
         });
         setServices(res.rows);
@@ -70,7 +70,7 @@ export default function NewServiceSale() {
   const profit = totalSalePrice - totalCost - form.externalCosts;
 
   const confirmSave = async () => {
-    if (form.quantity > (selectedService?.stock || 0)) {
+    if (form.quantity > (selectedService?.quantity || 0)) {
       toast.error("No hay suficiente stock disponible");
       setShowConfirm(false);
       return;
@@ -102,7 +102,7 @@ export default function NewServiceSale() {
           ]
         },
         {
-          sql: "UPDATE available_services SET stock = stock - ? WHERE id = ?",
+          sql: "UPDATE available_services SET quantity  = quantity  - ? WHERE id = ?",
           args: [form.quantity, selectedId]
         }
       ], "write");
@@ -137,7 +137,31 @@ export default function NewServiceSale() {
           <h2 className="text-sm font-bold uppercase tracking-wider">Venta de servicio digital</h2>
         </div>
 
-        <Field label="Nombre del Cliente">
+        <Field label="Nombre y apellido del Cliente">
+          <Input 
+            value={form.clientName} 
+            onChange={e => setForm({...form, clientName: e.target.value})} 
+            className={ic} 
+          />
+        </Field>
+
+                <Field label="Correo electronico del cliente">
+          <Input 
+            value={form.clientName} 
+            onChange={e => setForm({...form, clientName: e.target.value})} 
+            className={ic} 
+          />
+        </Field>
+
+          <Field label="Celular del Cliente">
+          <Input 
+            value={form.clientName} 
+            onChange={e => setForm({...form, clientName: e.target.value})} 
+            className={ic} 
+          />
+        </Field>
+
+                  <Field label="Red social del Cliente">
           <Input 
             value={form.clientName} 
             onChange={e => setForm({...form, clientName: e.target.value})} 
@@ -159,15 +183,15 @@ export default function NewServiceSale() {
           </Field>
         </div>
 
-        <Field label="Seleccionar Cuenta en Stock">
+        <Field label="Seleccionar servicio digital en Stock">
           <Select value={selectedId} onValueChange={setSelectedId}>
             <SelectTrigger className={ic}>
-              <SelectValue placeholder={services.length > 0 ? "Elige una cuenta" : "No hay stock disponible"} />
+              <SelectValue placeholder={services.length > 0 ? "Elige un servicio digital" : "No hay stock disponible"} />
             </SelectTrigger>
             <SelectContent>
               {services.map(s => (
                 <SelectItem key={s.id} value={s.id.toString()}>
-                  {s.name} - {s.email} - {s.months} meses - ({s.stock} disponibles)
+                  {s.name} - {s.months} meses - {s.email} - contraseña: {s.password} - code: {s.accessCodes} - ({s.quantity} disponibles)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -210,7 +234,7 @@ export default function NewServiceSale() {
 
         <Button 
           onClick={() => setShowConfirm(true)} 
-          disabled={saving || !selectedId || !form.clientName || form.quantity > (selectedService?.stock || 0)} 
+          disabled={saving || !selectedId || !form.clientName || form.quantity > (selectedService?.quantity || 0)} 
           className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-bold"
         >
           {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />} 

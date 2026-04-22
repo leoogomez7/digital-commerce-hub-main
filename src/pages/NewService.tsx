@@ -147,7 +147,7 @@ export default function NewService() {
           </Field>
 
           <Field label="Código de Acceso / PIN">
-            <Input value={form.accessCodes} onChange={e => set("accessCode", e.target.value)} className={ic} />
+            <Input value={form.accessCodes} onChange={e => set("accessCodes", e.target.value)} className={ic} />
           </Field>
           <Field label="Meses del servicio digital">
             <Input type="number" value={form.months} onChange={e => set("months", +e.target.value)} className={ic} />
