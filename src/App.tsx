@@ -38,9 +38,14 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* 1. Ruta pública */}
             <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+
+            {/* 2. Rutas protegidas por el AdminGuard (Contraseña maestra) */}
+            <Route path="/login" element={<AdminGuard><Login /></AdminGuard>} />
+            <Route path="/register" element={<AdminGuard><Register /></AdminGuard>} />
+            
+            {/* 3. Rutas del Dashboard (Protegidas por Kinde/Demo en el Layout) */}
             <Route path="/dashboard" element={<DashboardLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="new-product" element={<NewProduct />} />
@@ -54,9 +59,9 @@ const App = () => (
               <Route path="report-monthly" element={<ReportMonthly />} />
               <Route path="report-weekly" element={<ReportWeekly />} />
               <Route path="report-annual" element={<ReportAnnual />} />
-              <Route path="/login" element={<AdminGuard><Login /></AdminGuard>} />
-              <Route path="/register" element={<AdminGuard><Register /></AdminGuard>} />
             </Route>
+
+            {/* 4. Error 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
